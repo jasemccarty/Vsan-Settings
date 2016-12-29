@@ -11,7 +11,7 @@ Website: http://www.jasemccarty.com
 This script sets TSO/LRO Settings for Physical Nics
 
 Syntax is:
-To enable/disable TSO/LRO in Intel X710 Nics
+To enable/disable TSO/LRO on pNics
 Set-PnicTsoLro.ps1 -ClusterName <ClusterName> -TSOLRO <enable/disable>
 
 .Notes
