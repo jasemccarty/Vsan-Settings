@@ -1,5 +1,5 @@
 <#==========================================================================
-Script Name: Set-PnicTsoLro.ps1
+Script Name: Vsan-SetTsoLro.ps1
 Created on: 12/15/2016 
 Created by: Jase McCarty
 Github: http://www.github.com/jasemccarty
@@ -12,7 +12,7 @@ This script sets TSO/LRO Settings for Physical Nics
 
 Syntax is:
 To enable/disable TSO/LRO on pNics
-Set-PnicTsoLro.ps1 -ClusterName <ClusterName> -TSOLRO <enable/disable>
+Vsan-SetTsoLro.ps1 -ClusterName <ClusterName> -TSOLRO <enable/disable>
 
 .Notes
 
