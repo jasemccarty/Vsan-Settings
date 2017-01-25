@@ -16,7 +16,7 @@ https://kb.vmware.com/kb/2126909
 
 Syntax is:
 To enable/disable TSO/LRO on pNics
-Vsan-SetTsoLro.ps1 -ClusterName <ClusterName> -TSOLRO <enable/disable>
+Vsan-SetTsoLro.ps1 vCenter <vCenterName> -ClusterName <ClusterName> -TSOLRO <enable/disable>
 
 .Notes
 
@@ -24,7 +24,8 @@ Vsan-SetTsoLro.ps1 -ClusterName <ClusterName> -TSOLRO <enable/disable>
 
 # Set our Parameters
 [CmdletBinding()]Param(
-
+  [Parameter(Mandatory=$True)]
+  [string]$vCenter,
 
   [Parameter(Mandatory=$True)]
   [string]$ClusterName,
@@ -51,7 +52,7 @@ Switch ($TSOLRO) {
 		}
 	}
 	
-#Connect-VIServer $vCenter
+Connect-VIServer $vCenter
 
 # Get the Cluster Name
 $Cluster = Get-Cluster -Name $ClusterName
