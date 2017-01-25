@@ -8,7 +8,11 @@ Website: http://www.jasemccarty.com
 ===========================================================================
 
 .DESCRIPTION
-This script sets TSO/LRO Settings for Physical Nics
+This script sets TSO/LRO Settings for Physical NICs
+
+KB 2126909 
+PSOD w/ESXi 5.x/6.5 when using Intel X710 NICs
+https://kb.vmware.com/kb/2126909
 
 Syntax is:
 To enable/disable TSO/LRO on pNics
@@ -55,36 +59,41 @@ $Cluster = Get-Cluster -Name $ClusterName
     # Display the Cluster
     Write-Host Cluster: $($Cluster.name)
     
-    # Check to make sure we dealing with a vSAN cluster
-    If($Cluster.VsanEnabled){
+    # Check to make sure we are dealing with a vSAN cluster
+    # Uncomment this If block if only using on a vSAN cluster
+    #If($Cluster.VsanEnabled){
 
         # Cycle through each ESXi Host in the cluster
     	Foreach ($ESXHost in ($Cluster |Get-VMHost |Sort Name)){
 		
-			$TSOState = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO"
-			$LROState = Get-AdvancedSetting -Entity $ESXHost -Name "Net.TcpipDefLROEnabled"
+		$TSOState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO"
+		$TSO6State = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO6"
+		$LROState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.TcpipDefLROEnabled"
 
-			Write-Host "Host:" $ESXHost
-			#Write-Host "TSO $TSOState.Value"
-			#Write-Host "LRO $LROState.Value"
+		# Display the Host this is being performed on
+		Write-Host "Host:" $ESXHost
 			
-			If($TSOState.value -ne $TSOLROVALUE){
+		If($TSOState.value -ne $TSOLROVALUE){
+			# Show that host is being updated
+			Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
+			$TSOState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
+			Write-Host "A reboot of host $ESXHost is required for the UseHwTSO setting change to take effect" -foregroundcolor white -backgroundcolor red
+		} 
+		If($TSO6State.value -ne $TSOLROVALUE){
+			# Show that host is being updated
+			Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
+			$TSO6State | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
+			Write-Host "A reboot of host $ESXHost is required for the UseHwTSO6 setting change to take effect" -foregroundcolor white -backgroundcolor red
+		} 
+		If($LROState.value -ne $TSOLROVALUE){
+			# Show that host is being updated
+			Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
+			$LROState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
+			Write-Host "A reboot of host $ESXHost is required for the TcpipDefLROEnabled setting change to take effect" -foregroundcolor white -backgroundcolor red
+		} 
 
-				# Show that host is being updated
-				Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
-				$TSOState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
-				$LROState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false 
-				
-				Write-Host "A reboot of host $ESXHost is required for these settings to take effect" -foregroundcolor white -backgroundcolor red
+		Write-Host " "
 
-            } else {
-
-				# Show that the host is already set for the right value
-				Write-Host "On $ESXHost $TSOLROTEXT already" -foregroundcolor black -backgroundcolor green
-			
-			}
-			Write-Host " "
-
-		}
+    	}
 		            
-    }
+    #}
