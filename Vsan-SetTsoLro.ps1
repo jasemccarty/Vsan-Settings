@@ -16,7 +16,7 @@ https://kb.vmware.com/kb/2126909
 
 Syntax is:
 To enable/disable TSO/LRO on pNics
-Vsan-SetTsoLro.ps1 -vCenter <vCenterName> -ClusterName <ClusterName> -TSOLRO <enable/disable>
+Vsan-SetTsoLro.ps1 -VIServer <vCenter/ESXiHost> -TSOLRO <enable/disable> -ClusterName <ClusterName>
 
 .Notes
 
@@ -25,9 +25,9 @@ Vsan-SetTsoLro.ps1 -vCenter <vCenterName> -ClusterName <ClusterName> -TSOLRO <en
 # Set our Parameters
 [CmdletBinding()]Param(
   [Parameter(Mandatory=$True)]
-  [string]$vCenter,
+  [string]$VIServer,
 
-  [Parameter(Mandatory=$True)]
+  [Parameter(Mandatory=$False)]
   [string]$ClusterName,
 
   [Parameter(Mandatory = $true)]
@@ -52,49 +52,73 @@ Switch ($TSOLRO) {
 		}
 	}
 	
-Connect-VIServer $vCenter
+function SetTsoLro{
+Param ([string]$ESXHost,[String]$TSOLRO)
 
-# Get the Cluster Name
-$Cluster = Get-Cluster -Name $ClusterName
+				# Get the Host
+				$ESXHost = $VIServer 
+				
+				$TSOState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO"
+				$TSO6State = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO6"
+				$LROState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.TcpipDefLROEnabled"
 
-    # Display the Cluster
-    Write-Host Cluster: $($Cluster.name)
-    
-    # Check to make sure we are dealing with a vSAN cluster
-    # Uncomment this If block if only using on a vSAN cluster
-    #If($Cluster.VsanEnabled){
+				# Display the Host this is being performed on
+				Write-Host "Host:" $ESXHost
 
-        # Cycle through each ESXi Host in the cluster
-    	Foreach ($ESXHost in ($Cluster |Get-VMHost |Sort Name)){
+				# If any of these are set to the opposite, toggle the setting
+				If($TSOState.value -ne $TSOLROVALUE -or $TSO6State.value -ne $TSOLROVALUE -or $LROState.value -ne $TSOLROVALUE){
+					# Show that host is being updated
+					Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
+					$TSOState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
+					$TSO6State | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
+					$LROState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
+					Write-Host "A reboot of host $ESXHost is required for the updates to take effect" -foregroundcolor white -backgroundcolor red 
+				} 
+				
+				Write-Host " "
+
+}
+
+	
+Connect-VIServer $VIServer
+
+# Grab the VIServer Type. "vpx"  is vCenter. ESXi may be embeddedEsx or similar.
+$VIServerType = $defaultviserver.ProductLine
+
+# Depending on the which we've connected to, we'll want to operate differently
+Switch ($VIServerType) {
+		# If the VIServer Type is "vpx" we've connected to vCenter
+		"vpx" {
 		
-		$TSOState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO"
-		$TSO6State = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO6"
-		$LROState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.TcpipDefLROEnabled"
-
-		# Display the Host this is being performed on
-		Write-Host "Host:" $ESXHost
+			# If the ClusterName parameter was passed, proceed
+			If($ClusterName){
+				# Get the Cluster Name
+				$Cluster = Get-Cluster -Name $ClusterName -ErrorAction SilentlyContinue
+				
+				# Display the Cluster
+				Write-Host Cluster: $($Cluster.name)
 			
-		If($TSOState.value -ne $TSOLROVALUE){
-			# Show that host is being updated
-			Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
-			$TSOState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
-			Write-Host "A reboot of host $ESXHost is required for the UseHwTSO setting change to take effect" -foregroundcolor white -backgroundcolor red
-		} 
-		If($TSO6State.value -ne $TSOLROVALUE){
-			# Show that host is being updated
-			Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
-			$TSO6State | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
-			Write-Host "A reboot of host $ESXHost is required for the UseHwTSO6 setting change to take effect" -foregroundcolor white -backgroundcolor red
-		} 
-		If($LROState.value -ne $TSOLROVALUE){
-			# Show that host is being updated
-			Write-Host "On $ESXHost $TSOLROTEXT" -foregroundcolor red -backgroundcolor white
-			$LROState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
-			Write-Host "A reboot of host $ESXHost is required for the TcpipDefLROEnabled setting change to take effect" -foregroundcolor white -backgroundcolor red
-		} 
+				# Cycle through each ESXi Host in the cluster
+				Foreach ($ESXHost in ($Cluster |Get-VMHost |Sort Name)){
+		
+					# Execute the funtion to get/set the TSO/LRO settings
+					SetTsoLro -ESXHost $ESXHost -TSOLRO $TSOLRO
+		
+				}
+			# If the ClusterName parameter was not passed, don't proceed.
+			} else {
+				Write-Host "When connected to a vCenter Server, a Cluster Name is required" -foregroundcolor red -backgroundcolor white
+				Write-Host "Please rerun this script with the -ClusterName parameter" -foregroundcolor red -backgroundcolor white
+				Exit
+			}
+		}
+		# If not connecting to a vCenter Server, simply run the function against the host
+		default {
 
-		Write-Host " "
+				# Execute the funtion to get/set the TSO/LRO settings
+				SetTsoLro -ESXHost $ESXHost -TSOLRO $TSOLRO
+		
+		
+		}
 
-    	}
-		            
-    #}
+}
