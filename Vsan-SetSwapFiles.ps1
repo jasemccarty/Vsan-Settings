@@ -72,10 +72,10 @@ if ($Cluster.VsanEnabled){
 		$esxupdate = $esxcli.system.version.get().update
 		
         	# Make sure a version 6.0.0 host is being checked
-		If ($esxmajor -eq "6.0.0") {
+		If ($esxmajor -eq "6.0.0" -or $esxmajor -eq "6.5.0") {
 
 			# Make sure the host is ESXi 6.0.0 Update 2
-              		If ($esxupdate -gt "1") {
+              		If ($esxupdate -gt "1" -or $esxmajor -eq "6.5.0") {
 			  
 				# Get the current setting for SwapThickProvisionDisabled
 				$SwapThickProvisionDisabled = Get-AdvancedSetting -Entity $ESXHost -Name "VSAN.SwapThickProvisionDisabled"
