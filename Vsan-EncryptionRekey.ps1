@@ -64,7 +64,7 @@ Switch ($ReKey) {
 	}
 
 # Connect to vCenter Server
-#Connect-VIServer $vCenter -user $User -password $Password
+Connect-VIServer $vCenter -user $User -password $Password
 
 # Get the Cluster 
 $Cluster = Get-Cluster -Name $ClusterName
