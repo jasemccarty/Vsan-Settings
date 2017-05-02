@@ -8,8 +8,8 @@ Website: http://www.jasemccarty.com
 ===========================================================================
 
 .DESCRIPTION
-This script will go through each host in a designated cluster and 
-set /VSAN/SwapThickProvisionDisabled to either Thin or Space Reserved (Thick)
+This script will initiate a ReKey of a vSAN Cluster.
+Shallow ReKeying (KEK Only) or Deep ReKeying (DEK Also) are supported, as well as Reduced Redundancy if necessary. 
 
 This requires PowerCLI 6.5.1 and has been tested on vSAN 6.6
 
@@ -45,12 +45,10 @@ Vsan-EncryptionRekey.ps1 -vCenter <VCENTER> -ClusterName <CusterName> -ReKey <sh
 Switch ($ReKey) {
 	"shallow" { 
 		$RekeyAction = $false
-		$RekeyText  = "Default (local) Read Caching"
 		$RR = $false
 		}
 	"deep" {
 		$RekeyAction = $true
-		$RekeyText  = "Forced Warm Cache" 
 		If ($ReducedRedundancy -eq "enabled") {
 			$RR = $true }
 		else {
@@ -83,5 +81,4 @@ If($Cluster.vSanEnabled -And $EncryptedVsan.EncryptionEnabled){
 
   # Execute the rekeying task
 	$ReKeyTask = $VsanVcClusterConfig.VsanEncryptedClusterRekey_Task($Cluster.ExtensionData.MoRef,$ReKeyAction,$RR)
-
 }
