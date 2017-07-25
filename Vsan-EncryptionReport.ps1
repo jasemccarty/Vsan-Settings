@@ -8,8 +8,9 @@ Website: http://www.jasemccarty.com
 ===========================================================================
 
 .DESCRIPTION
-This script will perform a basic vSAN Encryption Report
-This requires PowerCLI 6.5.1 and has been tested on vSAN 6.6
+This script shows a basic enumeration of vSAN Encryption reporting using the Get-VsanView cmdlet.
+It shows overall health as well as some detailed reporting.
+Requires PowerCLI 6.5.1 and vSAN 6.6 with Encryption enabled.
 
 .SYNTAX
 Vsan-EncryptionReport.ps1 -vCenter <VCENTER> -ClusterName <CusterName>
