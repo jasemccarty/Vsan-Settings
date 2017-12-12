@@ -61,21 +61,21 @@ if ($Cluster.VsanEnabled){
 
 	# Cycle through each ESXi Host in the cluster
 	Foreach ($ESXHost in ($Cluster |Get-VMHost |Sort Name)){
-		
+
 		# Grab EsxCLI content to check for proper host version
-		$esxcli = Get-EsxCli -VMHost $ESXHost
+		$esxcli = Get-EsxCli -VMHost $ESXHost -V2
 
 		# Grab the major host version
-		$esxmajor = $esxcli.system.version.get().version
+		$esxmajor = $esxcli.system.version.get.invoke().version
 			
 		# Grab the update version
-		$esxupdate = $esxcli.system.version.get().update
+		$esxupdate = $esxcli.system.version.get.invoke().update
 		
         	# Make sure a version 6.0.0 or 6.5.0 host is being checked
-		If ($esxmajor -eq "6.0.0" -or $esxmajor -eq "6.5.0") {
+		If ($esxmajor -eq "6.0.0" -or $esxmajor -ge "6.5.0") {
 
 			# Make sure the host is ESXi 6.0.0 Update 2 or ESXi 6.5.0
-              		If ($esxupdate -gt "1" -or $esxmajor -eq "6.5.0") {
+             If ($esxupdate -gt "1" -or $esxmajor -ge "6.5.0") {
 			  
 				# Get the current setting for SwapThickProvisionDisabled
 				$SwapThickProvisionDisabled = Get-AdvancedSetting -Entity $ESXHost -Name "VSAN.SwapThickProvisionDisabled"
@@ -90,7 +90,7 @@ if ($Cluster.VsanEnabled){
 				} else {
 
 					# Show that the host is already set for Thin Swap Files
-					Write-Host "$esx is already configured for $VMSTEXT"
+					Write-Host "$ESXHost is already configured for $VMSTEXT"
 		        	}			  
 			  
 			  }
@@ -101,7 +101,7 @@ if ($Cluster.VsanEnabled){
 	
 } else {
 	
-	Write-Host "VSAN Not Enabled: Exiting"
+	Write-Host "vSAN Not Enabled: Exiting"
 	Exit
 	
 }
