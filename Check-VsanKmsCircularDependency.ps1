@@ -12,6 +12,7 @@ This script will look to see if a KMS Server is running on the same Encrypted
 vSAN Datastore that it is providing Key Management Services for.
 
 Tested on vSAN 6.6 and PowerCLI 6.5.4
+The KMS Server Applicances must have VMware Tools installed for this to work properly
 ** Powershell on MacOS will throw an error when performing KMS Host lookups
 ** Resolve this issue with adding KMS entries in the hosts file
 
