@@ -42,6 +42,9 @@ $EncryptedVsan = $VsanVcClusterConfig.VsanClusterGetConfig($Cluster.ExtensionDat
 # If vSAN is enabled and it is Encrypted
 If($Cluster.vSanEnabled -And $EncryptedVsan.EncryptionEnabled){
 
+    # Get the vSAN Datastore 
+    $vSANdatastore = $Cluster | Get-VMHost | Get-Datastore | Where-Object {$_.Type -eq "vsan"}
+
     # Get a list of VM IP Addresses - We'll grab them all, and compare them against each KMS Server entry
     $VMIpAddressList = Get-VM | Select-Object Name, @{N="IP";E={@($_.guest.IPaddress)}}
 
@@ -59,26 +62,47 @@ If($Cluster.vSanEnabled -And $EncryptedVsan.EncryptionEnabled){
 
         # Write the Current KMS Server being checked
         Write-Host "Current KMS Server" $KmsSvr.Name
+        Write-Host ""
 
         # Get the IP address of the KMS Server (this works for either FQDN or IP address)
         $KmsAddress = [System.Net.Dns]::GetHostAddresses([string]$KmsSvr.Address)
 
-        #Write-Host "KMSADDR " $KmsAddress
 
         # Compare the KMS Server's IP Address to the entire list of VM IP Addresses
         Foreach ($VMitem in $VMIpAddressList) {
-            
-            #Write-Host $VMitem.IP "" $VMitem.IPaddress
+
+            # Write-Host $VMitem.IP "" $VMitem.IPaddress
             If ($KmsAddress -eq $VMitem.IP){
-                Write-Host "VM"$VMItem.Name"has the IP address"$VMItem.IP" matching $KmsSvr at $KmsAddress" -ForegroundColor Red
-                Write-Host "This can possibly result in a circular dependency and is NOT supported by VMware" -ForegroundColor Red
-                Write-Host "It is suggested to immediately migrate"$VMItem.Name"to an alternate datastore" -ForegroundColor Red 
-                $CircularDependency = $CircularDependency + 1
+
+                # Determine the datastore the VM is on
+                $VMDatastore = Get-VM -Name $VMitem.Name | Get-Datastore
+
+                # See if our KMS VM is running on the vSAN Datastore vs an alternate datastore
+                If ($VMDatastore -eq $vSANdatastore) {
+
+                    Write-Host "VM"$VMItem.Name"has the IP address"$VMItem.IP" matching $KmsSvr at $KmsAddress" -ForegroundColor Red
+                    Write-Host "Is running in the "$Cluster.Name"Cluster" -ForegroundColor Red -NoNewline
+                    Write-Host " and it is running on"$vSANdatastore.Name -ForegroundColor Red
+                    Write-Host "It is suggested to immediately migrate VM"$VMItem.Name"to an alternate datastore and cluster" -ForegroundColor Red
+                    Write-Host "Consult the KMS Vendor's documentation regarding virtual machine movement" -ForegroundColor Yellow
+                    Write-Host ""
+                    $CircularDependency = $CircularDependency + 1                    
+
+                } else {
+                    Write-Host "VM"$VMItem.Name"has the IP address"$VMItem.IP" matching $KmsSvr at $KmsAddress" -ForegroundColor Red
+                    Write-Host "Is running in the "$Cluster.Name"Cluster" -ForegroundColor Red -NoNewline
+                    Write-Host " but is not running on"$vSANdatastore.Name -ForegroundColor Green
+                    Write-Host "It is suggested to migrate VM"$VMItem.Name"to an alternate cluster" -ForegroundColor Red
+                    Write-Host "Consult the KMS Vendor's documentation regarding virtual machine movement" -ForegroundColor Yellow
+                    Write-Host ""
+                    $PotentialDependency = $PotentialDependency + 1
+                }
+
             } 
         }
     }
-    # If we haven't had any Circular Dependencies, indicate that it could not be determined whether a KMS Cluster for the vSAN Cluster is running on the cluster.
-    If ($CircularDependency -lt 1) {
+    # If we haven't had any Circular / Potential Dependencies, indicate that it could not be determined whether a KMS Cluster for the vSAN Cluster is running on the cluster.
+    If ($CircularDependency -lt 1 -and $PotentialDependency -lt 1) {
         Write-Host "The KMS Cluster for this Encrypted Cluster could not be determined to be running on this Encrypted Cluster." -ForegroundColor Yellow
         Write-Host "Please manually check to validate that the KMS Cluster for this Encrypted vSAN Cluster isn't running on this Encrypted Cluster" -ForegroundColor Yellow 
     }
