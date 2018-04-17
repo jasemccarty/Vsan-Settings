@@ -10,7 +10,7 @@ Function Get-VMHostFipsState {
   Which Service
 
 	.EXAMPLE
-	PS C:\> Get-VMHostFipsState -VMHost <VMHost> -Item <ssh/rhttpproxy/blank>
+	PS C:\> Get-VMHostFipsState -VMHost <VMHost> -Service <ssh/rhttpproxy/blank>
 
 	.NOTES
 	Author                                    : Jase McCarty
