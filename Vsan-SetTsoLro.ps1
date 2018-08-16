@@ -1,6 +1,7 @@
 <#==========================================================================
 Script Name: Vsan-SetTsoLro.ps1
-Created on: 12/15/2016 
+Created on: 15 DEC 2016
+Updated on: 16 AUG 2018 
 Created by: Jase McCarty
 Github: http://www.github.com/jasemccarty
 Twitter: @jasemccarty
@@ -11,7 +12,7 @@ Website: http://www.jasemccarty.com
 This script sets TSO/LRO Settings for Physical NICs
 
 KB 2126909 
-PSOD w/ESXi 5.x/6.5 when using Intel X710 NICs
+PSOD w/ESXi 5.x/6.x when using Intel X710 NICs
 https://kb.vmware.com/kb/2126909
 
 Syntax is:
@@ -54,9 +55,6 @@ Switch ($TSOLRO) {
 	
 function SetTsoLro{
 Param ([string]$ESXHost,[String]$TSOLRO)
-
-				# Get the Host
-				$ESXHost = $VIServer 
 				
 				$TSOState  = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO"
 				$TSO6State = Get-AdvancedSetting -Entity $ESXHost -Name "Net.UseHwTSO6"
@@ -73,52 +71,39 @@ Param ([string]$ESXHost,[String]$TSOLRO)
 					$TSO6State | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
 					$LROState | Set-AdvancedSetting -Value $TSOLROVALUE -Confirm:$false
 					Write-Host "A reboot of host $ESXHost is required for the updates to take effect" -foregroundcolor white -backgroundcolor red 
-				} 
+				}  else {
+					Write-Host "On $ESXHost $TSOLROTEXT" -ForegroundColor green
+					Write-Host "A reboot of host $ESXHost is not required as no updates have been made" -foregroundcolor green 
+				}
 				
 				Write-Host " "
 
 }
 
 	
-Connect-VIServer $VIServer
+#Connect-VIServer $VIServer
 
-# Grab the VIServer Type. "vpx"  is vCenter. ESXi may be embeddedEsx or similar.
-$VIServerType = $defaultviserver.ProductLine
-
-# Depending on the which we've connected to, we'll want to operate differently
-Switch ($VIServerType) {
-		# If the VIServer Type is "vpx" we've connected to vCenter
-		"vpx" {
-		
-			# If the ClusterName parameter was passed, proceed
-			If($ClusterName){
-				# Get the Cluster Name
-				$Cluster = Get-Cluster -Name $ClusterName -ErrorAction SilentlyContinue
+# If the ClusterName variable is passed, it is expected that the VIServer used will be a vCenter Server
+If ($ClusterName) {
 				
-				# Display the Cluster
-				Write-Host Cluster: $($Cluster.name)
+	# Get the Cluster Name
+	$Cluster = Get-Cluster -Name $ClusterName -ErrorAction SilentlyContinue
+				
+	# Display the Cluster
+	Write-Host Cluster: $($Cluster.name)
 			
-				# Cycle through each ESXi Host in the cluster
-				Foreach ($ESXHost in ($Cluster |Get-VMHost |Sort Name)){
+	# Cycle through each ESXi Host in the cluster
+	Foreach ($ESXHost in ($Cluster |Get-VMHost | Sort-Object "Name")){
 		
-					# Execute the funtion to get/set the TSO/LRO settings
-					SetTsoLro -ESXHost $ESXHost -TSOLRO $TSOLRO
+		# Execute the funtion to get/set the TSO/LRO settings
+		SetTsoLro -ESXHost $ESXHost -TSOLRO $TSOLRO
 		
-				}
-			# If the ClusterName parameter was not passed, don't proceed.
-			} else {
-				Write-Host "When connected to a vCenter Server, a Cluster Name is required" -foregroundcolor red -backgroundcolor white
-				Write-Host "Please rerun this script with the -ClusterName parameter" -foregroundcolor red -backgroundcolor white
-				Exit
-			}
-		}
-		# If not connecting to a vCenter Server, simply run the function against the host
-		default {
+	}
 
-				# Execute the funtion to get/set the TSO/LRO settings
-				SetTsoLro -ESXHost $ESXHost -TSOLRO $TSOLRO
-		
-		
-		}
+} else {
+
+	# Execute the funtion to get/set the TSO/LRO settings
+	SetTsoLro -ESXHost $VIServer -TSOLRO $TSOLRO
 
 }
+
