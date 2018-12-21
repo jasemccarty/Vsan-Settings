@@ -6,6 +6,8 @@ Github: http://www.github.com/jasemccarty
 Twitter: @jasemccarty
 Website: http://www.jasemccarty.com
 ===========================================================================
+
+To use this module, Use Import-Module <path>/LargeClusters.psm1
 #>
 
 Function RebootVsanNode {
