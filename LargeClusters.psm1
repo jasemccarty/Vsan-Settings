@@ -281,7 +281,7 @@ Write-Host Cluster: $($Cluster.name)
                 If ($DataMigration) {
                     RebootVsanNode -EsxHost $ESXHost -DataMigration $DataMigration
                 } 
-                    RebootVsanNode -EsxHost
+                    RebootVsanNode -EsxHost $ESXHost
             }
         }
 			  
