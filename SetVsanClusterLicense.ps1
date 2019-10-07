@@ -53,3 +53,5 @@ if ($License -in $CurrentVsanLicenses.LicenseKey) {
 $LicenseAssignmentManager.UpdateAssignedLicense($ClusterComputeResource.Moref.value,$License,"vSAN")
 
 }
+
+Set-VsanClusterLicense -License "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" -Cluster "ClusterName"
